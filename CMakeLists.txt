@@ -8,4 +8,4 @@ add_executable(netconf ${SOURCE_EXE})
 
 SET(CMAKE_CXX_FLAGS "-std=c++11")
 
-target_link_libraries(netconf fcgi++ fcgi)
+target_link_libraries(netconf fcgi++ fcgi pthread)

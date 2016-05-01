@@ -1,5 +1,7 @@
 #include "fcgihandler.h"
-#include "fcgio.h"
+#include <sstream>
+#include <thread>
+#include <vector>
 
 FcgiHandler::FcgiHandler():
     in(nullptr),
@@ -27,21 +29,34 @@ bool FcgiHandler::Init()
 
 void FcgiHandler::Work()
 {
+    std::vector<std::thread> threads;
+
+    for(int i=0; i<4; i++)
+    {
+        threads.push_back(std::thread(&FcgiHandler::ThreadHandle,this));
+    }
+
+    for(auto& thread: threads)
+        thread.join();
+}
+
+void FcgiHandler::ThreadHandle()
+{
     FCGX_Request request;
 
     FCGX_InitRequest(&request, socketId, 0);
 
-    while (FCGX_Accept_r(&request) == 0)
+    while (true)
     {
-        fcgi_streambuf in_fcgi_streambuf(request.in);
-        fcgi_streambuf out_fcgi_streambuf(request.out);
-        fcgi_streambuf err_fcgi_streambuf(request.err);
+        {
+            std::lock_guard<std::mutex> lock(fcgxAcceptMutex);
+            if(FCGX_Accept_r(&request) != 0)
+                return;
+        }
 
-        in.rdbuf(&in_fcgi_streambuf);
-        out.rdbuf(&out_fcgi_streambuf);
-        err.rdbuf(&err_fcgi_streambuf);
+        std::ostringstream outString;
 
-        out << "Content-type: text/html\r\n"
+        outString << "Content-type: text/html\r\n"
              << "\r\n"
              << "<html>\n"
              << "  <head>\n"
@@ -51,5 +66,17 @@ void FcgiHandler::Work()
              << "    <h1>Plug</h1>\n"
              << "  </body>\n"
              << "</html>\n";
+
+        PrintOut(request, outString.str());
     }
+}
+
+void FcgiHandler::PrintOut(FCGX_Request & request, const std::string &str)
+{
+    std::lock_guard<std::mutex> lock(outStreamMutex);
+
+    fcgi_streambuf out_fcgi_streambuf(request.out);
+    out.rdbuf(&out_fcgi_streambuf);
+
+    out << str;
 }
