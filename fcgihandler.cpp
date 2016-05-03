@@ -1,4 +1,5 @@
 #include "fcgihandler.h"
+#include "configuration.h"
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -20,7 +21,8 @@ FcgiHandler::~FcgiHandler()
 bool FcgiHandler::Init()
 {
     FCGX_Init();
-    socketId = FCGX_OpenSocket(":5000", 0);
+    socketId = FCGX_OpenSocket(Configuration::Instance().GetParams().sockPath.c_str(),
+                               Configuration::Instance().GetParams().queueLength);
     if(socketId < 0)
         return 0;
     else
@@ -31,7 +33,7 @@ void FcgiHandler::Work()
 {
     std::vector<std::thread> threads;
 
-    for(int i=0; i<4; i++)
+    for(int i=0; i<Configuration::Instance().GetParams().threadsNum; i++)
     {
         threads.push_back(std::thread(&FcgiHandler::ThreadHandle,this));
     }
