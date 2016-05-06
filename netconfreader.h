@@ -3,6 +3,7 @@
 
 #include <dbus/dbus.h>
 #include <string>
+#include <vector>
 
 class NetConfReader
 {
@@ -13,8 +14,14 @@ public:
 
 private:
     bool DBusConnect();
-    bool MethodCall(std::string target, std::string object, std::string interface, std::string method, DBusPendingCall* & pending);
+    bool MethodCall(const char * target, const char * object, const char * interface, const char * method, DBusPendingCall * & pending);
+    bool PropertyRequest(const char * target, const char * object, const char * interface, const char * property, DBusPendingCall * & pending);
     bool GetReply(DBusPendingCall* & pending, DBusMessage* & msg);
+    std::string DBusGetString(DBusMessageIter &iter);
+    int DBusGetInt(DBusMessageIter & iter);
+    std::vector<std::string> GetConfigPaths(const char * path);
+    std::vector<std::string> GetDevicesPaths();
+    std::vector<std::pair<uint32_t, uint32_t>> GetIpsAndMasks(const char * path);
 
 private:
     DBusConnection* conn;
