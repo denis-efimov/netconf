@@ -1,4 +1,6 @@
 #include "netconfreader.h"
+#include <sstream>
+#include <thread>
 
 NetConfReader::NetConfReader():
     isConnected(false)
@@ -9,20 +11,43 @@ NetConfReader::~NetConfReader()
 {
 }
 
-void NetConfReader::GetNetConfiguration()
+boost::property_tree::ptree NetConfReader::GetNetConfiguration()
+{
+    std::lock_guard<std::mutex> lock(confPTreeMutex);
+    return confPTree;
+}
+
+void NetConfReader::ThreadFunc(std::chrono::seconds period)
+{
+    for(;;)
+    {
+        UpdateNetConfiguration();
+        std::this_thread::sleep_for(period);
+    }
+}
+
+void NetConfReader::UpdateNetConfiguration()
 {
     if(DBusConnect())
     {
+        int deviceNum = 0;
+        boost::property_tree::ptree newPT;
         for(auto & devicePath: GetDevicesPaths())
         {
-            for(auto & configPath: GetConfigPaths(devicePath.c_str()))
-            {
-                for(auto & ipsAndMasks: GetIpsAndMasks(configPath.c_str()))
-                {
-                    //TODO
-                }
-            }
+            std::string configPath = GetConfigPaths(devicePath.c_str());
+            std::pair<uint32_t, uint32_t> ipAndMask = GetIpAndMask(configPath.c_str());
+            boost::property_tree::ptree innerPT;
+
+            innerPT.put("ip", uintIpToString(ipAndMask.first));
+            innerPT.put("mask", uintIpToString(ipAndMask.second));
+            innerPT.put("gateway", GetGateway(configPath.c_str()));
+
+            std::ostringstream deviceName;
+            deviceName << "device" << deviceNum++;
+            newPT.put_child(deviceName.str(), innerPT);
         }
+        std::lock_guard<std::mutex> lock(confPTreeMutex);
+        confPTree = newPT;
     }
 }
 
@@ -126,9 +151,9 @@ int NetConfReader::DBusGetInt(DBusMessageIter &iter)
     return num;
 }
 
-std::vector<std::string> NetConfReader::GetConfigPaths(const char * path)
+std::string NetConfReader::GetConfigPaths(const char * path)
 {
-    std::vector<std::string> devices;
+    std::string confPath;
     DBusPendingCall * pending;
     if(PropertyRequest("org.freedesktop.NetworkManager",
                   path,
@@ -144,15 +169,13 @@ std::vector<std::string> NetConfReader::GetConfigPaths(const char * path)
             {
                 DBusMessageIter sub;
                 dbus_message_iter_recurse(&args, &sub);
-                do
-                {
-                    devices.push_back(DBusGetString(sub));
-                }while(dbus_message_iter_next(&sub));
+
+                confPath.append(DBusGetString(sub));
             }
         }
         dbus_message_unref(msg);
     }
-    return devices;
+    return confPath;
 }
 
 std::vector<std::string> NetConfReader::GetDevicesPaths()
@@ -184,9 +207,9 @@ std::vector<std::string> NetConfReader::GetDevicesPaths()
     return devices;
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> NetConfReader::GetIpsAndMasks(const char * path)
+std::pair<uint32_t, uint32_t> NetConfReader::GetIpAndMask(const char * path)
 {
-    std::vector<std::pair<uint32_t, uint32_t>> ipsAndMasks;
+    std::pair<uint32_t, uint32_t> ipAndMask;
     DBusPendingCall * pending;
     if(PropertyRequest("org.freedesktop.NetworkManager",
                   path,
@@ -202,35 +225,69 @@ std::vector<std::pair<uint32_t, uint32_t>> NetConfReader::GetIpsAndMasks(const c
             {
                 DBusMessageIter sub;
                 dbus_message_iter_recurse(&args, &sub);
-                do
-                {
-                    DBusMessageIter sub2;
-                    dbus_message_iter_recurse(&sub, &sub2);
-                    do
-                    {
-                        DBusMessageIter sub3;
-                        dbus_message_iter_recurse(&sub2, &sub3);
 
-                        uint32_t ip;
-                        dbus_message_iter_get_basic(&sub3, &ip);
+                DBusMessageIter sub2;
+                dbus_message_iter_recurse(&sub, &sub2);
 
-                        dbus_message_iter_next(&sub3);
+                DBusMessageIter sub3;
+                dbus_message_iter_recurse(&sub2, &sub3);
 
-                        uint32_t maskBits;
-                        dbus_message_iter_get_basic(&sub3, &maskBits);
-                        int shift = 32 - maskBits;
-                        uint32_t mask = be32toh(ip) >> shift;
-                        mask = mask << shift;
-                        mask = htobe32(mask);
+                uint32_t ip;
+                dbus_message_iter_get_basic(&sub3, &ip);
 
-                        dbus_message_iter_next(&sub3);
+                dbus_message_iter_next(&sub3);
 
-                        ipsAndMasks.push_back(std::make_pair(ip, mask));
-                    }while(dbus_message_iter_next(&sub2));
-                }while(dbus_message_iter_next(&sub));
+                uint32_t maskBits;
+                dbus_message_iter_get_basic(&sub3, &maskBits);
+
+                uint32_t mask = 0;
+                for(int i=0; i<maskBits; i++)
+                    mask |= 0x80000000 >> i;
+                mask = htobe32(mask);
+
+                dbus_message_iter_next(&sub3);
+
+                ipAndMask = std::make_pair(ip, mask);
             }
         }
         dbus_message_unref(msg);
     }
-    return ipsAndMasks;
+    return ipAndMask;
+}
+
+std::string NetConfReader::GetGateway(const char *path)
+{
+    std::string gateway;
+    DBusPendingCall * pending;
+    if(PropertyRequest("org.freedesktop.NetworkManager",
+                  path,
+                  "org.freedesktop.NetworkManager.IP4Config",
+                  "Gateway",
+                  pending))
+    {
+        DBusMessage* msg;
+        if(GetReply(pending, msg))
+        {
+            DBusMessageIter args;
+            if(dbus_message_iter_init(msg, &args))
+            {
+                DBusMessageIter sub;
+                dbus_message_iter_recurse(&args, &sub);
+
+                gateway = DBusGetString(sub);
+            }
+        }
+        dbus_message_unref(msg);
+    }
+    return gateway;
+}
+
+std::string NetConfReader::uintIpToString(uint32_t ip)
+{
+    std::ostringstream ipStr;
+    ipStr << ((ip >> 0) & 0xFF) << "."
+          << ((ip >> 8) & 0xFF) << "."
+          << ((ip >> 16) & 0xFF) << "."
+          << ((ip >> 24) & 0xFF);
+    return ipStr.str();
 }

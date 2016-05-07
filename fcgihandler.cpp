@@ -3,6 +3,11 @@
 #include <sstream>
 #include <thread>
 #include <vector>
+#include <functional>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
+#include <fstream>
 
 FcgiHandler::FcgiHandler():
     in(nullptr),
@@ -33,16 +38,18 @@ void FcgiHandler::Work()
 {
     std::vector<std::thread> threads;
 
+    threads.push_back(std::thread(&NetConfReader::ThreadFunc, &netConfReader, std::chrono::seconds(60)));
+
     for(int i=0; i<Configuration::Instance().GetParams().threadsNum; i++)
     {
-        threads.push_back(std::thread(&FcgiHandler::ThreadHandle,this));
+        threads.push_back(std::thread(&FcgiHandler::ThreadFunc,this, std::ref(netConfReader)));
     }
 
     for(auto& thread: threads)
         thread.join();
 }
 
-void FcgiHandler::ThreadHandle()
+void FcgiHandler::ThreadFunc(NetConfReader & netConfReader)
 {
     FCGX_Request request;
 
@@ -57,17 +64,10 @@ void FcgiHandler::ThreadHandle()
         }
 
         std::ostringstream outString;
-
         outString << "Content-type: text/html\r\n"
-             << "\r\n"
-             << "<html>\n"
-             << "  <head>\n"
-             << "    <title>Plug</title>\n"
-             << "  </head>\n"
-             << "  <body>\n"
-             << "    <h1>Plug</h1>\n"
-             << "  </body>\n"
-             << "</html>\n";
+                  << "\r\n";
+
+        boost::property_tree::json_parser::write_json(outString, netConfReader.GetNetConfiguration(), false);
 
         PrintOut(request, outString.str());
     }
