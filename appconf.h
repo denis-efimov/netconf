@@ -3,25 +3,23 @@
 
 #include <string>
 
-class Configuration
+class AppConf
 {
-private:
-    struct paramsStruct;
+    struct FcgiParamsStruct;
+    struct DBusParamsStruct;
 
 public:
-    static const Configuration & Instance();
-    const paramsStruct & GetParams() const;
+    AppConf();
+    const FcgiParamsStruct & GetFcgiParams() const;
+    const DBusParamsStruct & GetDBusParams() const;
 
 private:
-    Configuration();
-    Configuration( const Configuration &){}
-    Configuration & operator=( Configuration & ){}
     bool LoadConfiguration();
     bool CreateConfiguration();
 
-    struct paramsStruct
+    struct FcgiParamsStruct
     {
-        paramsStruct()
+        FcgiParamsStruct()
         {
             sockPath = ":5000";
             queueLength = 0;
@@ -31,7 +29,17 @@ private:
         std::string sockPath;
         int queueLength;
         int threadsNum;
-    }params;
+    }fcgiParams;
+
+    struct DBusParamsStruct
+    {
+        DBusParamsStruct()
+        {
+            period = 60;
+        }
+
+        int period;
+    }dBusParams;
 
     static const char * CONF_FILENAME;
 };

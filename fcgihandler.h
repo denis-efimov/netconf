@@ -2,6 +2,7 @@
 #define FCGIHANDLER_H
 
 #include "fcgio.h"
+#include "appconf.h"
 #include "netconfreader.h"
 #include <iostream>
 #include <mutex>
@@ -20,6 +21,7 @@ private:
     void PrintOut(FCGX_Request & request, const std::string & str);
 
 private:
+    AppConf appConf;
     NetConfReader netConfReader;
 
     std::istream in;
