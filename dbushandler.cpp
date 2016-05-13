@@ -1,6 +1,6 @@
 #include "dbushandler.h"
 
-#include <fstream>
+#include "logger.h"
 
 DBusHandler::DBusHandler(const std::string &name):
     isConnected(false),
@@ -29,8 +29,7 @@ bool DBusHandler::Connect()
     if (dbus_error_is_set(&err))
     {
         //Name Error
-        std::ofstream file("log");
-        file << err.message;
+        Logger::instance() << err.message;
         dbus_error_free(&err);
         return false;
     }
