@@ -11,7 +11,8 @@ FcgiHandler::FcgiHandler():
     in(nullptr),
     out(nullptr),
     err(nullptr),
-    socketId(-1)
+    socketId(-1),
+    netConfReader(appConf.GetDBusParams().name)
 {
 
 }

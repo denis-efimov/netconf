@@ -2,7 +2,8 @@
 #include <sstream>
 #include <thread>
 
-NetConfReader::NetConfReader()
+NetConfReader::NetConfReader(const std::string & name):
+    dBusHandler(name)
 {
 }
 
@@ -120,8 +121,8 @@ std::pair<uint32_t, uint32_t> NetConfReader::GetIpAndMask(const char * path)
         if(dBusHandler.GetReply(pending, msg))
         {
             DBusMessageIter args;
-            if(dbus_message_iter_init(msg, &args))
-            {
+            if(dbus_message_iter_init(msg, &args) && dbus_message_iter_get_arg_type(&args) == 'v')
+            {   
                 DBusMessageIter sub;
                 dbus_message_iter_recurse(&args, &sub);
 
@@ -168,7 +169,7 @@ std::string NetConfReader::GetGateway(const char *path)
         if(dBusHandler.GetReply(pending, msg))
         {
             DBusMessageIter args;
-            if(dbus_message_iter_init(msg, &args))
+            if(dbus_message_iter_init(msg, &args) && dbus_message_iter_get_arg_type(&args) == 'v')
             {
                 DBusMessageIter sub;
                 dbus_message_iter_recurse(&args, &sub);

@@ -11,7 +11,7 @@
 class NetConfReader
 {
 public:
-    NetConfReader();
+    NetConfReader(const std::string & name);
     ~NetConfReader();
     boost::property_tree::ptree GetNetConfiguration();
     void ThreadFunc(std::chrono::seconds period);

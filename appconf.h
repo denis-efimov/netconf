@@ -36,9 +36,11 @@ private:
         DBusParamsStruct()
         {
             period = 60;
+            name = "test.method.server";
         }
 
         int period;
+        std::string name;
     }dBusParams;
 
     static const char * CONF_FILENAME;

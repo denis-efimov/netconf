@@ -7,7 +7,7 @@
 class DBusHandler
 {
 public:
-    DBusHandler();
+    DBusHandler(const std::string & name);
 
     bool Connect();
     bool MethodCall(const char * target, const char * object, const char * interface, const char * method, DBusPendingCall * & pending);
@@ -19,6 +19,7 @@ public:
 private:
     DBusConnection* conn;
     bool isConnected;
+    std::string _name;
 };
 
 #endif // DBUSHANDLER_H

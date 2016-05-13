@@ -2,8 +2,9 @@
 
 #include <fstream>
 
-DBusHandler::DBusHandler():
-    isConnected(false)
+DBusHandler::DBusHandler(const std::string &name):
+    isConnected(false),
+    _name(name)
 {
 
 }
@@ -24,7 +25,7 @@ bool DBusHandler::Connect()
         return false;
     }
 
-    dbus_bus_request_name(conn, "test.method.server", DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
+    dbus_bus_request_name(conn, _name.data(), DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
     if (dbus_error_is_set(&err))
     {
         //Name Error

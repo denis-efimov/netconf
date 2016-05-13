@@ -45,6 +45,8 @@ bool AppConf::LoadConfiguration()
         {
             if(const boost::optional<int> period = dBusParamsPT.get().get_optional<int>("period"))
                 dBusParams.period = period.get();
+            if(const boost::optional<std::string> name = dBusParamsPT.get().get_optional<std::string>("name"))
+                dBusParams.name.assign(name.get());
         }
 
         return true;
@@ -65,6 +67,7 @@ bool AppConf::CreateConfiguration()
 
     ptree dBusParamsPT;
     dBusParamsPT.put("period", dBusParams.period);
+    dBusParamsPT.put("name", dBusParams.name);
 
     mainPT.put_child("fcgi", fcgiParamsPT);
     mainPT.put_child("dbus", dBusParamsPT);
