@@ -1,0 +1,62 @@
+//-----------------------------------------------------------------------------
+COMPILING
+//-----------------------------------------------------------------------------
+
+To compile netconf you have to have a C++11 supporting compiler and some
+libraries. It is recommended to run the commands below before trying
+compolation:
+
+sudo apt install libdbus-1-dev
+sudo apt install libboost-all-dev
+sudo apt install libfcgi-dev
+
+//-----------------------------------------------------------------------------
+CONFIGURING
+//-----------------------------------------------------------------------------
+
+To make netconf to work you have to:
+1) configure an fcgi supporting server(nginx is recommended)
+2) configure dbus to let netconf work on the system bus
+3) configure netconf.
+
+Netconf generates "conf.json" file after the first run. Then you can set up the
+config as you like.
+
+Configuration files examples:
+
+//-----------------------------------------------------------------------------
+nginx configuration example(nginx.conf):
+//-----------------------------------------------------------------------------
+
+worker_processes  1;
+
+timer_resolution 100ms;
+
+events {
+  worker_connections  1024;
+}
+
+http {
+  server {
+    location / {
+      fastcgi_pass  localhost:5000;
+      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+      fastcgi_param QUERY_STRING    $query_string;
+    }
+  }
+}
+
+//-----------------------------------------------------------------------------
+dbus configuration example(netconf.conf):
+//-----------------------------------------------------------------------------
+
+<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+  <policy context="default">
+    <allow own="test.method.server"/>
+  </policy>
+
+</busconfig>
+
