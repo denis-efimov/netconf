@@ -69,6 +69,8 @@ void FcgiHandler::ThreadFunc(NetConfReader & netConfReader)
         boost::property_tree::json_parser::write_json(outString, netConfReader.GetNetConfiguration(), false);
 
         PrintOut(request, outString.str());
+
+        FCGX_Finish_r(&request);
     }
 }
 

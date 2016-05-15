@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project(netconf)
 
+enable_testing()
+
+add_subdirectory(tests tests)
+
 aux_source_directory(./ SOURCE_EXE)
 
 add_executable(netconf ${SOURCE_EXE})
