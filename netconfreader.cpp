@@ -2,8 +2,9 @@
 #include <sstream>
 #include <thread>
 
-NetConfReader::NetConfReader(const std::string & name):
-    dBusHandler(name)
+NetConfReader::NetConfReader(DBusHandler & dBusHandler, int period):
+    _dBusHandler(dBusHandler),
+    _period(period)
 {
 }
 
@@ -17,18 +18,18 @@ boost::property_tree::ptree NetConfReader::GetNetConfiguration()
     return confPTree;
 }
 
-void NetConfReader::ThreadFunc(std::chrono::seconds period)
+void NetConfReader::ThreadFunc()
 {
     for(;;)
     {
         UpdateNetConfiguration();
-        std::this_thread::sleep_for(period);
+        std::this_thread::sleep_for(std::chrono::seconds(_period));
     }
 }
 
 void NetConfReader::UpdateNetConfiguration()
 {
-    if(dBusHandler.Connect())
+    if(_dBusHandler.Init())
     {
         int deviceNum = 0;
         boost::property_tree::ptree newPT;
@@ -55,14 +56,14 @@ std::string NetConfReader::GetConfigPaths(const char * path)
 {
     std::string confPath;
     DBusPendingCall * pending;
-    if(dBusHandler.PropertyRequest("org.freedesktop.NetworkManager",
+    if(_dBusHandler.PropertyRequest("org.freedesktop.NetworkManager",
                   path,
                   "org.freedesktop.NetworkManager.Device",
                   "Ip4Config",
                   pending))
     {
         DBusMessage* msg;
-        if(dBusHandler.GetReply(pending, msg))
+        if(_dBusHandler.GetReply(pending, msg))
         {
             DBusMessageIter args;
             if(dbus_message_iter_init(msg, &args))
@@ -70,7 +71,7 @@ std::string NetConfReader::GetConfigPaths(const char * path)
                 DBusMessageIter sub;
                 dbus_message_iter_recurse(&args, &sub);
 
-                confPath.append(dBusHandler.GetString(sub));
+                confPath.append(_dBusHandler.GetString(sub));
             }
         }
         dbus_message_unref(msg);
@@ -82,14 +83,14 @@ std::vector<std::string> NetConfReader::GetDevicesPaths()
 {
     std::vector<std::string> devices;
     DBusPendingCall * pending;
-    if(dBusHandler.MethodCall("org.freedesktop.NetworkManager",
+    if(_dBusHandler.MethodCall("org.freedesktop.NetworkManager",
                   "/org/freedesktop/NetworkManager",
                   "org.freedesktop.NetworkManager",
                   "GetDevices",
                   pending))
     {
         DBusMessage* msg;
-        if(dBusHandler.GetReply(pending, msg))
+        if(_dBusHandler.GetReply(pending, msg))
         {
             DBusMessageIter args;
             if(dbus_message_iter_init(msg, &args))
@@ -98,7 +99,7 @@ std::vector<std::string> NetConfReader::GetDevicesPaths()
                 dbus_message_iter_recurse(&args, &sub);
                 do
                 {
-                    devices.push_back(dBusHandler.GetString(sub));
+                    devices.push_back(_dBusHandler.GetString(sub));
                 }while(dbus_message_iter_next(&sub));
             }
         }
@@ -111,14 +112,14 @@ std::pair<uint32_t, uint32_t> NetConfReader::GetIpAndMask(const char * path)
 {
     std::pair<uint32_t, uint32_t> ipAndMask;
     DBusPendingCall * pending;
-    if(dBusHandler.PropertyRequest("org.freedesktop.NetworkManager",
+    if(_dBusHandler.PropertyRequest("org.freedesktop.NetworkManager",
                   path,
                   "org.freedesktop.NetworkManager.IP4Config",
                   "Addresses",
                   pending))
     {
         DBusMessage* msg;
-        if(dBusHandler.GetReply(pending, msg))
+        if(_dBusHandler.GetReply(pending, msg))
         {
             DBusMessageIter args;
             if(dbus_message_iter_init(msg, &args) && dbus_message_iter_get_arg_type(&args) == 'v')
@@ -159,14 +160,14 @@ std::string NetConfReader::GetGateway(const char *path)
 {
     std::string gateway;
     DBusPendingCall * pending;
-    if(dBusHandler.PropertyRequest("org.freedesktop.NetworkManager",
+    if(_dBusHandler.PropertyRequest("org.freedesktop.NetworkManager",
                   path,
                   "org.freedesktop.NetworkManager.IP4Config",
                   "Gateway",
                   pending))
     {
         DBusMessage* msg;
-        if(dBusHandler.GetReply(pending, msg))
+        if(_dBusHandler.GetReply(pending, msg))
         {
             DBusMessageIter args;
             if(dbus_message_iter_init(msg, &args) && dbus_message_iter_get_arg_type(&args) == 'v')
@@ -174,7 +175,7 @@ std::string NetConfReader::GetGateway(const char *path)
                 DBusMessageIter sub;
                 dbus_message_iter_recurse(&args, &sub);
 
-                gateway = dBusHandler.GetString(sub);
+                gateway = _dBusHandler.GetString(sub);
             }
         }
         dbus_message_unref(msg);

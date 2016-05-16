@@ -16,7 +16,7 @@ const AppConf::FcgiParamsStruct & AppConf::GetFcgiParams() const
     return fcgiParams;
 }
 
-const AppConf::DBusParamsStruct &AppConf::GetDBusParams() const
+const AppConf::DBusParamsStruct & AppConf::GetDBusParams() const
 {
     return dBusParams;
 }

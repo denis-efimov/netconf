@@ -2,28 +2,24 @@
 #define FCGIHANDLER_H
 
 #include "fcgio.h"
-#include "appconf.h"
 #include "netconfreader.h"
+#include "appconf.h"
 #include <iostream>
 #include <mutex>
 
 class FcgiHandler
 {
 public:
-    FcgiHandler();
+    FcgiHandler(NetConfReader & netConfReader, const AppConf::FcgiParamsStruct & params);
     ~FcgiHandler();
 
     bool Init();
-    void Work();
+    void ThreadFunc();
 
 private:
-    void ThreadFunc(NetConfReader & netConfReader);
     void PrintOut(FCGX_Request & request, const std::string & str);
 
 private:
-    AppConf appConf;
-    NetConfReader netConfReader;
-
     std::istream in;
     std::ostream out;
     std::ostream err;
@@ -31,6 +27,9 @@ private:
     int socketId;
     std::mutex fcgxAcceptMutex;
     std::mutex outStreamMutex;
+
+    AppConf::FcgiParamsStruct _params;
+    NetConfReader & _netConfReader;
 };
 
 #endif // FCGIHANDLER_H

@@ -5,17 +5,13 @@
 
 class AppConf
 {
+public:
     struct FcgiParamsStruct;
     struct DBusParamsStruct;
 
-public:
     AppConf();
     const FcgiParamsStruct & GetFcgiParams() const;
     const DBusParamsStruct & GetDBusParams() const;
-
-private:
-    bool LoadConfiguration();
-    bool CreateConfiguration();
 
     struct FcgiParamsStruct
     {
@@ -42,6 +38,10 @@ private:
         int period;
         std::string name;
     }dBusParams;
+
+private:
+    bool LoadConfiguration();
+    bool CreateConfiguration();
 
     static const char * CONF_FILENAME;
 };

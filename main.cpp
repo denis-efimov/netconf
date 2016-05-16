@@ -1,5 +1,6 @@
-#include "fcgihandler.h"
+#include "core.h"
 #include "logger.h"
+#include "appconf.h"
 
 int main(void)
 {
@@ -8,10 +9,12 @@ int main(void)
     //there is only one instance
     Logger::instance();
 
-    FcgiHandler fcgiHandler;
+    AppConf appConf;
 
-    if(fcgiHandler.Init())
-        fcgiHandler.Work();
+    Core core(appConf);
+
+    if(core.Init())
+        core.Work();
 
     return 0;
 }

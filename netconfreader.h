@@ -11,10 +11,10 @@
 class NetConfReader
 {
 public:
-    NetConfReader(const std::string & name);
+    NetConfReader(DBusHandler & dBusHandler, int period);
     ~NetConfReader();
     boost::property_tree::ptree GetNetConfiguration();
-    void ThreadFunc(std::chrono::seconds period);
+    void ThreadFunc();
 
 private:
     void UpdateNetConfiguration();
@@ -25,9 +25,10 @@ private:
     std::string uintIpToString(uint32_t ip);
 
 private:
-    DBusHandler dBusHandler;
+    DBusHandler & _dBusHandler;
     boost::property_tree::ptree confPTree;
     std::mutex confPTreeMutex;
+    int _period;
 };
 
 #endif // NETCONFREADER_H

@@ -2,14 +2,14 @@
 
 #include "logger.h"
 
-DBusHandler::DBusHandler(const std::string &name):
+DBusHandler::DBusHandler(const AppConf::DBusParamsStruct & params):
     isConnected(false),
-    _name(name)
+    _params(params)
 {
 
 }
 
-bool DBusHandler::Connect()
+bool DBusHandler::Init()
 {
     if(isConnected)
         return true;
@@ -25,7 +25,7 @@ bool DBusHandler::Connect()
         return false;
     }
 
-    dbus_bus_request_name(conn, _name.data(), DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
+    dbus_bus_request_name(conn, _params.name.data(), DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
     if (dbus_error_is_set(&err))
     {
         //Name Error
@@ -38,7 +38,7 @@ bool DBusHandler::Connect()
     return true;
 }
 
-bool DBusHandler::MethodCall(const char *target, const char *object, const char *interface, const char *method, DBusPendingCall* & pending)
+bool DBusHandler::MethodCall(const char * target, const char * object, const char * interface, const char * method, DBusPendingCall * & pending)
 {
     DBusMessage* msg;
 
@@ -56,7 +56,7 @@ bool DBusHandler::MethodCall(const char *target, const char *object, const char 
     return true;
 }
 
-bool DBusHandler::PropertyRequest(const char * target, const char * object, const char * interface, const char * property, DBusPendingCall* & pending)
+bool DBusHandler::PropertyRequest(const char * target, const char * object, const char * interface, const char * property, DBusPendingCall * & pending)
 {
     DBusMessage* msg;
     DBusMessageIter args;
@@ -83,7 +83,7 @@ bool DBusHandler::PropertyRequest(const char * target, const char * object, cons
     return true;
 }
 
-bool DBusHandler::GetReply(DBusPendingCall* & pending, DBusMessage* & msg)
+bool DBusHandler::GetReply(DBusPendingCall* & pending, DBusMessage * & msg)
 {
     dbus_pending_call_block(pending);
 

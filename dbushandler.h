@@ -1,15 +1,16 @@
 #ifndef DBUSHANDLER_H
 #define DBUSHANDLER_H
 
+#include "appconf.h"
 #include <dbus/dbus.h>
 #include <string>
 
 class DBusHandler
 {
 public:
-    DBusHandler(const std::string & name);
+    DBusHandler(const AppConf::DBusParamsStruct & params);
 
-    bool Connect();
+    bool Init();
     bool MethodCall(const char * target, const char * object, const char * interface, const char * method, DBusPendingCall * & pending);
     bool PropertyRequest(const char * target, const char * object, const char * interface, const char * property, DBusPendingCall * & pending);
     bool GetReply(DBusPendingCall* & pending, DBusMessage* & msg);
@@ -19,7 +20,7 @@ public:
 private:
     DBusConnection* conn;
     bool isConnected;
-    std::string _name;
+    AppConf::DBusParamsStruct _params;
 };
 
 #endif // DBUSHANDLER_H
